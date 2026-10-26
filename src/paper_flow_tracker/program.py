@@ -292,15 +292,16 @@ class ArticleCard(QFrame):
     def __init__(self, article: dict[str, Any], parent=None):
         super().__init__(parent)
         self.setObjectName("articleCard")
-        #self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         layout = QVBoxLayout(self)
         #layout.setContentsMargins(esquerda, superior, direita, inferior)
         layout.setContentsMargins(14, 12, 14, 12)
-        #layout.setSpacing(5)
-        layout.setSpacing(0) # Este sim aumenta o spacing vertical
+        layout.setSpacing(10)
+        layout.setAlignment(Qt.AlignTop)
         title = QLabel(article.get("title") or DATA["ARTCARD_WITHOUT_TITLE"])
         title.setObjectName("articleTitle")
         title.setWordWrap(True)
+        title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         title.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layout.addWidget(title)
         self._detail(   layout, 
@@ -327,7 +328,8 @@ class ArticleCard(QFrame):
         #layout.setContentsMargins(esquerda, superior, direita, inferior)
         line.setContentsMargins(0, 0, 0, 0)
         #line.setSpacing(0)
-        line.setSpacing(6) 
+        line.setSpacing(6)
+        line.setAlignment(Qt.AlignTop)
         
         icon = QLabel()
         icon.setObjectName("detailIcon")
@@ -340,6 +342,7 @@ class ArticleCard(QFrame):
         val = QLabel(value)
         val.setObjectName("detailValue")
         val.setWordWrap(True)
+        val.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         val.setTextInteractionFlags(Qt.TextSelectableByMouse)
         if link:
             parsed_url = QUrl.fromUserInput(value)
