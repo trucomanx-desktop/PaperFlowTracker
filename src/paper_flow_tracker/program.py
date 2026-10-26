@@ -960,13 +960,12 @@ class MainWindow(QMainWindow):
                     required = max(widget.sizeHint().height(), widget.heightForWidth(available_width))
                 else:
                     required = widget.sizeHint().height()
-                cell_heights.append(required + 10)
-            heights.append(max(132, max(cell_heights, default=132)))
+                cell_heights.append(required)
+            heights.append(max(cell_heights, default=1))
         if not heights:
             return
-        uniform_height = max(heights)
         for row, height in enumerate(heights):
-            self.table.setRowHeight(row, uniform_height if DATA["UNIFORM_ROW_HEIGHT"] else height)
+            self.table.setRowHeight(row, height)
 
     def load_articles(self) -> list[dict[str, Any]]:
         try:
@@ -1047,7 +1046,6 @@ class MainWindow(QMainWindow):
                     row, col,
                     StageCard(stages.get(key), article.get("submission_date"), description, edit_stage),
                 )
-            self.table.setRowHeight(row, 132)
         self.article_column_min_width = max(article_widths, default=DATA["STATUS_COLUMN_WIDTH"])
         self.count.setText((DATA["ARTICLE_COUNT_SINGULAR"] if len(rows) == 1 else DATA["ARTICLE_COUNT_PLURAL"]).format(count=len(rows)))
         labels = [DATA["TABLE_TITLE_ARTICLE"]] + [stage[1] for stage in DATA["STAGES"]]
