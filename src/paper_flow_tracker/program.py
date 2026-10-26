@@ -61,6 +61,21 @@ CONFIG_DEFAULTS = {
     "ARTICLE_MENU_TOOLTIP": "Double-click to edit",
     "ARTICLE_MENU_EDIT": "Edit article",
     "ARTICLE_MENU_REMOVE": "Remove article",
+    "ARTDLG_WINDOW_TITLE_EDIT": "Edit article",
+    "ARTDLG_WINDOW_TITLE_NEW": "New article",
+    "ARTDLG_WINDOW_WIDTH": 480,
+    "ARTDLG_DESCRIPTION": "Article information and dates of editorial stages",
+    "ARTDLG_TITLE": "Title",
+    "ARTDLG_AUTHORS": "Authors",
+    "ARTDLG_JOURNAL": "Journal",
+    "ARTDLG_SUBMISSION_DATE": "Submission date",
+    "ARTDLG_COMPLETED": "Completed",
+    "ARTDLG_TITLE_REQUIRED": "Title required",
+    "ARTDLG_TITLE_REQUIRED_DESCRIPTION": "Provide the title of the article.",
+    "ARTCARD_WITHOUT_TITLE": "Untitled",
+    "ARTCARD_WITHOUT_AUTHORS": "Authors not specified",
+    "ARTCARD_WITHOUT_JOURNAL": "Journal not specified",
+    "ARTCARD_WITHOUT_DATE": "Date not specified",
     "STAGES": [
         ["first_decision", "First decision", "First decision", "Initial editorial decision by the journal following submission."],
         ["decision_after_review", "Decision 1st review", "Decision after first review", "Decision by the journal following the reviewers' assessments and any necessary revisions."],
@@ -112,11 +127,11 @@ def display_date(value: str | None) -> str:
 class ArticleDialog(QDialog):
     def __init__(self, parent=None, article: dict[str, Any] | None = None):
         super().__init__(parent)
-        self.setWindowTitle("Editar artigo" if article else "Novo artigo")
-        self.setMinimumWidth(480)
+        self.setWindowTitle(DATA["ARTDLG_WINDOW_TITLE_EDIT"] if article else DATA["ARTDLG_WINDOW_TITLE_NEW"])
+        self.setMinimumWidth(DATA["ARTDLG_WINDOW_WIDTH"])
         self.article = article or {}
         outer = QVBoxLayout(self)
-        intro = QLabel("Informações do artigo e datas das etapas editoriais")
+        intro = QLabel(DATA["ARTDLG_DESCRIPTION"])
         intro.setObjectName("dialogIntro")
         outer.addWidget(intro)
         form = QFormLayout()
@@ -126,15 +141,15 @@ class ArticleDialog(QDialog):
         self.journal_edit = QLineEdit(self.article.get("journal", ""))
         self.submission = self._date_field(self.article.get("submission_date"))
         self.stage_dates: dict[str, tuple[QCheckBox, QDateEdit]] = {}
-        form.addRow("Título", self.title_edit)
-        form.addRow("Autores", self.authors_edit)
-        form.addRow("Revista", self.journal_edit)
-        form.addRow("Data de submissão", self.submission)
+        form.addRow(DATA["ARTDLG_TITLE"], self.title_edit)
+        form.addRow(DATA["ARTDLG_AUTHORS"], self.authors_edit)
+        form.addRow(DATA["ARTDLG_JOURNAL"], self.journal_edit)
+        form.addRow(DATA["ARTDLG_SUBMISSION_DATE"], self.submission)
         for key, _label, full_title, _description in DATA["STAGES"]:
             row = QWidget()
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(0, 0, 0, 0)
-            done = QCheckBox("Concluída")
+            done = QCheckBox(DATA["ARTDLG_COMPLETED"])
             date_edit = self._date_field(self.article.get("stages", {}).get(key))
             done.setChecked(bool(self.article.get("stages", {}).get(key)))
             date_edit.setEnabled(done.isChecked())
@@ -181,11 +196,10 @@ class ArticleDialog(QDialog):
 
     def accept(self):
         if not self.title_edit.text().strip():
-            QMessageBox.warning(self, "Título necessário", "Informe o título do artigo.")
+            QMessageBox.warning(self, DATA["ARTDLG_TITLE_REQUIRED"], DATA["ARTDLG_TITLE_REQUIRED_DESCRIPTION"])
             self.title_edit.setFocus()
             return
         super().accept()
-
 
 class ArticleCard(QFrame):
     def __init__(self, article: dict[str, Any], parent=None):
@@ -195,13 +209,22 @@ class ArticleCard(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(5)
-        title = QLabel(article.get("title") or "Sem título")
+        title = QLabel(article.get("title") or DATA["ARTCARD_WITHOUT_TITLE"])
         title.setObjectName("articleTitle")
         title.setWordWrap(True)
         layout.addWidget(title)
-        self._detail(layout, resource_path("icons", "system-users-symbolic.svg"), QStyle.SP_DirHomeIcon, article.get("authors") or "Autores não informados")
-        self._detail(layout, resource_path("icons", "accessories-dictionary-symbolic.svg"), QStyle.SP_FileIcon, article.get("journal") or "Revista não informada")
-        self._detail(layout, resource_path("icons", "x-office-calendar-symbolic.svg"), QStyle.SP_FileDialogContentsView, display_date(article.get("submission_date")) or "Data não informada")
+        self._detail(   layout, 
+                        resource_path("icons", "system-users-symbolic.svg"), 
+                        QStyle.SP_DirHomeIcon, 
+                        article.get("authors") or DATA["ARTCARD_WITHOUT_AUTHORS"] )
+        self._detail(   layout, 
+                        resource_path("icons", "accessories-dictionary-symbolic.svg"), 
+                        QStyle.SP_FileIcon, 
+                        article.get("journal") or DATA["ARTCARD_WITHOUT_JOURNAL"] )
+        self._detail(   layout, 
+                        resource_path("icons", "x-office-calendar-symbolic.svg"), 
+                        QStyle.SP_FileDialogContentsView, 
+                        display_date(article.get("submission_date")) or DATA["ARTCARD_WITHOUT_DATE"] )
 
     def _detail(self, layout: QVBoxLayout, img_path: str, fallback, value: str):
         line = QHBoxLayout()

@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paper_flow_tracker"
+version = "0.1.0"
+description = "Follow each stage of the process of publishing scientific articles"
+readme = "README.md"
+authors = [{name = "Fernando Pujaico Rivera", email = "fernando.pujaico.rivera@gmail.com"}]
+maintainers = [{name = "Fernando Pujaico Rivera", email = "fernando.pujaico.rivera@gmail.com"}]
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "GPL-3.0-only WITH Classpath-Exception-2.0 OR BSD-3-Clause"
+license-files = ["LICENSE"]
+keywords = ["writing", "article"]
+dependencies = [
+    "PyQt5"
+]
+
+[project.urls]
+"Bug Reports" = "https://github.com/trucomanx-desktop/PaperFlowTracker/issues"
+"Funding" = "https://trucomanx.github.io/en/funding.html"
+"Documentation" = "https://github.com/trucomanx-desktop/PaperFlowTracker/tree/main/doc"
+"Source" = "https://github.com/trucomanx-desktop/PaperFlowTracker"
+
+[project.scripts]
+"paper-flow-tracker" = "paper_flow_tracker.program:main"
+
+[tool.setuptools]
+packages = ["paper_flow_tracker", "paper_flow_tracker.modules"]
+
+[tool.setuptools.package-data]
+"paper_flow_tracker" = ["icons/*.png","icons/*.svg"]
