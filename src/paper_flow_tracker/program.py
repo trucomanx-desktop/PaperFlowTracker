@@ -913,6 +913,7 @@ class MainWindow(QMainWindow):
         for column, stage in enumerate(DATA["STAGES"], start=1):
             self.table.horizontalHeaderItem(column).setToolTip(stage[2])
         self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
         self.table.setShowGrid(False)
         self.table.setSelectionMode(QAbstractItemView.NoSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -989,24 +990,39 @@ class MainWindow(QMainWindow):
     def _update_row_heights(self):
         if not hasattr(self, "table"):
             return
-        heights = []
         for row in range(self.table.rowCount()):
-            cell_heights = []
+            required_height = 0
             for column in range(self.table.columnCount()):
                 widget = self.table.cellWidget(row, column)
                 if widget is None:
                     continue
-                available_width = max(1, self.table.columnWidth(column))
+                width = max(1, self.table.columnWidth(column))
+                if isinstance(widget, ArticleCard):
+                    title = next(
+                        (label for label in widget.findChildren(QLabel)
+                         if label.objectName() == "articleTitle"),
+                        None,
+                    )
+                    if title is not None:
+                        # QLabel's wrapped-text height can be a little shorter
+                        # than its painted text height. Reserve the font-metric
+                        # height at the actual card text width before measuring
+                        # the enclosing card.
+                        title_width = max(1, width - 68)
+                        metrics = title.fontMetrics()
+                        text_height = metrics.boundingRect(
+                            0, 0, title_width, 100000,
+                            Qt.TextWordWrap,
+                            title.text(),
+                        ).height()
+                        title.setMinimumHeight(text_height + 6)
+                        widget.layout().activate()
                 if widget.hasHeightForWidth():
-                    required = widget.heightForWidth(available_width)
+                    height = widget.heightForWidth(width)
                 else:
-                    required = widget.sizeHint().height()
-                cell_heights.append(required)
-            heights.append(max(cell_heights, default=1))
-        if not heights:
-            return
-        #for row, height in enumerate(heights):
-            #self.table.setRowHeight(row, height+30)
+                    height = widget.sizeHint().height()
+                required_height = max(required_height, height)
+            self.table.setRowHeight(row, required_height)
 
     def load_articles(self) -> list[dict[str, Any]]:
         try:
