@@ -292,13 +292,11 @@ class ArticleCard(QFrame):
         super().__init__(parent)
         self.setObjectName("articleCard")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
-        layout = QVBoxLayout(self)
-        #layout.setContentsMargins(esquerda, superior, direita, inferior)
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(10)
-        layout.setAlignment(Qt.AlignTop)
 
-        actions = QHBoxLayout()
+        actions = QVBoxLayout()
         actions.setContentsMargins(0, 0, 0, 0)
         actions.setSpacing(4)
         edit_button = QPushButton()
@@ -322,32 +320,39 @@ class ArticleCard(QFrame):
         actions.addWidget(edit_button)
         actions.addWidget(remove_button)
         actions.addStretch(1)
+        actions.setAlignment(Qt.AlignTop)
         layout.addLayout(actions)
+
+        content = QVBoxLayout()
+        content.setContentsMargins(0, 0, 0, 0)
+        content.setSpacing(10)
+        content.setAlignment(Qt.AlignTop)
+        layout.addLayout(content, 1)
 
         title = QLabel(article.get("title") or DATA["ARTCARD_WITHOUT_TITLE"])
         title.setObjectName("articleTitle")
         title.setWordWrap(True)
         title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         title.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        layout.addWidget(title)
-        self._detail(   layout, 
+        content.addWidget(title)
+        self._detail(   content, 
                         resource_path("icons", "system-users-symbolic.svg"), 
                         QStyle.SP_DirHomeIcon, 
                         article.get("authors") or DATA["ARTCARD_WITHOUT_AUTHORS"] )
-        self._detail(   layout, 
+        self._detail(   content, 
                         resource_path("icons", "accessories-dictionary-symbolic.svg"), 
                         QStyle.SP_FileIcon, 
                         article.get("journal") or DATA["ARTCARD_WITHOUT_JOURNAL"] )
-        self._detail(   layout, 
+        self._detail(   content, 
                         resource_path("icons", "x-office-calendar-symbolic.svg"), 
                         QStyle.SP_FileDialogContentsView, 
                         display_date(article.get("submission_date")) or DATA["ARTCARD_WITHOUT_DATE"] )
         url = str(article.get("url") or "").strip()
         if url:
-            self._detail(layout, resource_path("icons", "web-browser-symbolic.svg"), QStyle.SP_DirLinkIcon, url, link=True)
+            self._detail(content, resource_path("icons", "web-browser-symbolic.svg"), QStyle.SP_DirLinkIcon, url, link=True)
         source = str(article.get("source") or "").strip()
         if source:
-            self._detail(layout, resource_path("icons", "web-browser-symbolic.svg"), QStyle.SP_FileLinkIcon, source, link=True)
+            self._detail(content, resource_path("icons", "web-browser-symbolic.svg"), QStyle.SP_FileLinkIcon, source, link=True)
 
     def _detail(self, layout: QVBoxLayout, img_path: str, fallback, value: str, link: bool = False):
         line = QHBoxLayout()
