@@ -1,6 +1,6 @@
 # about.py
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __package__ = "paper_flow_tracker"
 __program_name__ = "paper-flow-tracker"
 __author__ = "Fernando Pujaico Rivera"
