@@ -996,9 +996,9 @@ class MainWindow(QMainWindow):
                 widget = self.table.cellWidget(row, column)
                 if widget is None:
                     continue
-                available_width = max(1, self.table.columnWidth(column) - 10)
+                available_width = max(1, self.table.columnWidth(column))
                 if widget.hasHeightForWidth():
-                    required = max(widget.sizeHint().height(), widget.heightForWidth(available_width))
+                    required = widget.heightForWidth(available_width)
                 else:
                     required = widget.sizeHint().height()
                 cell_heights.append(required)
