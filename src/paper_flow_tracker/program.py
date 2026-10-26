@@ -114,6 +114,8 @@ CONFIG_DEFAULTS = {
     "STATS_STAGE_TIMES": "Time to each stage",
     "STATS_STAGE_TIMES_NOTE": "Days from submission to the date recorded for each stage.",
     "STAGE_ELAPSED_DAYS": "+{days} days",
+    "STAGE_CARD_EDIT_TOOLTIP": "Double-click to edit the date",
+    "STAGEDLG_DATE": "Date",
     "STATS_TABLE_HEADERS": ["STAGE", "ARTICLES (N)", "MEAN · DAYS", "STANDARD DEVIATION · DAYS"],
     "STATS_SUBMISSIONS_BY_YEAR": "Submissions by year",
     "STATS_VALID_DATES_NOTE": "Statistics use only available and valid dates.",
@@ -249,6 +251,28 @@ class ArticleDialog(QDialog):
             return
         super().accept()
 
+class StageDateDialog(QDialog):
+    def __init__(self, stage_title: str, value: str | None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(stage_title)
+        self.setMinimumWidth(340)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+        self.date_edit = ArticleDialog._date_field(value)
+        form.addRow(DATA["STAGEDLG_DATE"], self.date_edit)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Save).setText(DATA["BUTTON_SAVE"])
+        buttons.button(QDialogButtonBox.Cancel).setText(DATA["BUTTON_CANCEL"])
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def result_date(self) -> str:
+        return ArticleDialog._iso(self.date_edit)
+
+
 class ArticleCard(QFrame):
     def __init__(self, article: dict[str, Any], parent=None):
         super().__init__(parent)
@@ -293,15 +317,18 @@ class ArticleCard(QFrame):
 
 
 class StageCard(QFrame):
-    def __init__(self, value: str | None, submission_date: str | None, description: str, parent=None):
+    def __init__(self, value: str | None, submission_date: str | None, description: str, on_double_click=None, parent=None):
         super().__init__(parent)
         self.setObjectName("stageCard")
+        self.on_double_click = on_double_click
+        self.setCursor(Qt.PointingHandCursor)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(3)
         layout.addStretch(1)
         icon = QLabel()
         icon.setObjectName("doneIcon" if value else "pendingIcon")
+        icon.setAttribute(Qt.WA_TransparentForMouseEvents)
         icon.setAlignment(Qt.AlignCenter)
         icon.setFixedSize(DATA["STATUS_ICON_SIZE"], DATA["STATUS_ICON_SIZE"])
         theme_icon = QIcon(resource_path("icons", "check.svg") if value else resource_path("icons", "uncheck.svg"))
@@ -312,24 +339,32 @@ class StageCard(QFrame):
         layout.addWidget(icon, alignment=Qt.AlignHCenter)
         when = QLabel(display_date(value) if value else "")
         when.setObjectName("stageDate")
+        when.setAttribute(Qt.WA_TransparentForMouseEvents)
         when.setAlignment(Qt.AlignCenter)
         layout.addWidget(when)
-
         submitted = parse_iso(submission_date)
         completed = parse_iso(value)
         elapsed = QLabel("")
         if submitted and completed and completed >= submitted:
             elapsed.setText(DATA["STAGE_ELAPSED_DAYS"].format(days=(completed - submitted).days))
         elapsed.setObjectName("stageElapsed")
+        elapsed.setAttribute(Qt.WA_TransparentForMouseEvents)
         elapsed.setAlignment(Qt.AlignCenter)
         layout.addWidget(elapsed)
         layout.addStretch(1)
         status = DATA["LEGEND_COMPLETED"] if value else DATA["LEGEND_PENDING"]
-        tooltip = f"{status} — {description}"
+        tooltip = f"{status} — {description}\n{DATA['STAGE_CARD_EDIT_TOOLTIP']}"
         self.setToolTip(tooltip)
         icon.setToolTip(tooltip)
         when.setToolTip(tooltip)
         elapsed.setToolTip(tooltip)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton and self.on_double_click:
+            self.on_double_click()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 
 
 class SettingsDialog(QDialog):
@@ -935,6 +970,19 @@ class MainWindow(QMainWindow):
             self.save_articles()
             self.refresh_table()
 
+    def edit_stage_date(self, article: dict[str, Any], stage_key: str, stage_title: str):
+        current_date = (article.get("stages") or {}).get(stage_key)
+        dialog = StageDateDialog(stage_title, current_date, self)
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        stages = article.get("stages")
+        if not isinstance(stages, dict):
+            stages = {}
+            article["stages"] = stages
+        stages[stage_key] = dialog.result_date()
+        self.save_articles()
+        self.refresh_table()
+
     def refresh_table(self):
         if not hasattr(self, "table"):
             return
@@ -962,8 +1010,12 @@ class MainWindow(QMainWindow):
             card.addAction(delete_action)
             self.table.setCellWidget(row, 0, card)
             stages = article.get("stages", {})
-            for col, (key, _label, _full_title, description) in enumerate(DATA["STAGES"], start=1):
-                self.table.setCellWidget(row, col, StageCard(stages.get(key), article.get("submission_date"), description))
+            for col, (key, _label, full_title, description) in enumerate(DATA["STAGES"], start=1):
+                edit_stage = lambda current=article, stage_key=key, title=full_title: self.edit_stage_date(current, stage_key, title)
+                self.table.setCellWidget(
+                    row, col,
+                    StageCard(stages.get(key), article.get("submission_date"), description, edit_stage),
+                )
             self.table.setRowHeight(row, 132)
         self.article_column_min_width = max(article_widths, default=DATA["STATUS_COLUMN_WIDTH"])
         self.count.setText((DATA["ARTICLE_COUNT_SINGULAR"] if len(rows) == 1 else DATA["ARTICLE_COUNT_PLURAL"]).format(count=len(rows)))
