@@ -611,7 +611,8 @@ class StatisticsPage(QWidget):
         self.metrics.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.metrics.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.metrics.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.metrics.setSelectionMode(QAbstractItemView.NoSelection)
+        self.metrics.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.metrics.setSelectionBehavior(QAbstractItemView.SelectItems)
         self.metrics.setShowGrid(False)
         self.metrics.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         for column in range(1, 4):
@@ -710,6 +711,11 @@ class StatisticsPage(QWidget):
             },
             "submissoes_por_ano": by_year,
         }
+        self._enable_text_selection()
+
+    def _enable_text_selection(self):
+        for label in self.findChildren(QLabel):
+            label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
 
     def _refresh_year_bars(self, by_year: dict[str, int]):
         while self.year_layout.count():
