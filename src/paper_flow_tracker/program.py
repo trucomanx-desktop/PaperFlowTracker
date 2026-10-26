@@ -1180,11 +1180,14 @@ QLineEdit:focus { border-color: #a4b9a4; }
 QComboBox { background: #ffffff; border: 1px solid #e6e8e1; border-radius: 9px; padding: 8px 11px; color: #3c443e; }
 QComboBox::drop-down { border: 0; width: 26px; }
 QComboBox QAbstractItemView { background: #ffffff; border: 1px solid #e6e8e1; selection-background-color: #e6eee5; selection-color: #3c443e; }
+QMenu { background: #ffffff; border: 1px solid #dfe5dc; padding: 4px; }
+QMenu::item { color: #3c443e; padding: 6px 24px 6px 10px; border-radius: 4px; }
+QMenu::item:selected { background: #dfeadd; color: #304a35; }
 QPushButton#primaryButton { background: #58765f; color: white; border: 0; border-radius: 9px; padding: 11px 16px; font-weight: 600; }
 QPushButton#primaryButton:hover { background: #496a52; }
 QPushButton#cardActionButton { background: transparent; border: 0; border-radius: 6px; padding: 3px; }
-QPushButton#cardActionButton:hover { background: #e8ece6; }
-QPushButton#cardActionButton:pressed { background: #dce4dc; }
+QPushButton#cardActionButton:hover { background: #e1ebe0; border: 1px solid #c8d7c7; }
+QPushButton#cardActionButton:pressed { background: #d2e0d1; border: 1px solid #b7cbb6; }
 QTableWidget { background: transparent; border: 0; outline: 0; }
 QHeaderView::section { color: #8b938c; background: transparent; border: 0; border-bottom: 1px solid #e5e8e1; padding: 11px 6px; font-size: 10px; font-weight: 700; }
 QTableWidget::item { border: 0; padding: 4px; }
