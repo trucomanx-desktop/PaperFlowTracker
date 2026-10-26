@@ -113,6 +113,7 @@ CONFIG_DEFAULTS = {
     "STATS_NO_ONLINE_DATE": "No online publication date",
     "STATS_STAGE_TIMES": "Time to each stage",
     "STATS_STAGE_TIMES_NOTE": "Days from submission to the date recorded for each stage.",
+    "STAGE_ELAPSED_DAYS": "+{days} days",
     "STATS_TABLE_HEADERS": ["STAGE", "ARTICLES (N)", "MEAN · DAYS", "STANDARD DEVIATION · DAYS"],
     "STATS_SUBMISSIONS_BY_YEAR": "Submissions by year",
     "STATS_VALID_DATES_NOTE": "Statistics use only available and valid dates.",
@@ -292,7 +293,7 @@ class ArticleCard(QFrame):
 
 
 class StageCard(QFrame):
-    def __init__(self, value: str | None, description: str, parent=None):
+    def __init__(self, value: str | None, submission_date: str | None, description: str, parent=None):
         super().__init__(parent)
         self.setObjectName("stageCard")
         layout = QVBoxLayout(self)
@@ -313,12 +314,22 @@ class StageCard(QFrame):
         when.setObjectName("stageDate")
         when.setAlignment(Qt.AlignCenter)
         layout.addWidget(when)
+
+        submitted = parse_iso(submission_date)
+        completed = parse_iso(value)
+        elapsed = QLabel("")
+        if submitted and completed and completed >= submitted:
+            elapsed.setText(DATA["STAGE_ELAPSED_DAYS"].format(days=(completed - submitted).days))
+        elapsed.setObjectName("stageElapsed")
+        elapsed.setAlignment(Qt.AlignCenter)
+        layout.addWidget(elapsed)
         layout.addStretch(1)
         status = DATA["LEGEND_COMPLETED"] if value else DATA["LEGEND_PENDING"]
         tooltip = f"{status} — {description}"
         self.setToolTip(tooltip)
         icon.setToolTip(tooltip)
         when.setToolTip(tooltip)
+        elapsed.setToolTip(tooltip)
 
 
 class SettingsDialog(QDialog):
@@ -490,6 +501,8 @@ class StatisticsPage(QWidget):
         self.metrics.setObjectName("statsTable")
         self.metrics.setHorizontalHeaderLabels(DATA["STATS_TABLE_HEADERS"])
         self.metrics.verticalHeader().setVisible(False)
+        self.metrics.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.metrics.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.metrics.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.metrics.setSelectionMode(QAbstractItemView.NoSelection)
         self.metrics.setShowGrid(False)
@@ -503,8 +516,7 @@ class StatisticsPage(QWidget):
                 if column:
                     item.setTextAlignment(Qt.AlignCenter)
                 self.metrics.setItem(row, column, item)
-            self.metrics.setRowHeight(row, 42)
-        content.addWidget(self.metrics)
+        content.addWidget(self.metrics, 1)
 
         year_title = QLabel(DATA["STATS_SUBMISSIONS_BY_YEAR"])
         year_title.setObjectName("sectionTitle")
@@ -515,7 +527,6 @@ class StatisticsPage(QWidget):
         self.year_layout.setSpacing(9)
         content.addLayout(self.year_layout)
         
-        content.addStretch(1)
         scroll.setWidget(body)
         outer.addWidget(scroll, 1)
 
@@ -952,7 +963,7 @@ class MainWindow(QMainWindow):
             self.table.setCellWidget(row, 0, card)
             stages = article.get("stages", {})
             for col, (key, _label, _full_title, description) in enumerate(DATA["STAGES"], start=1):
-                self.table.setCellWidget(row, col, StageCard(stages.get(key), description))
+                self.table.setCellWidget(row, col, StageCard(stages.get(key), article.get("submission_date"), description))
             self.table.setRowHeight(row, 132)
         self.article_column_min_width = max(article_widths, default=DATA["STATUS_COLUMN_WIDTH"])
         self.count.setText((DATA["ARTICLE_COUNT_SINGULAR"] if len(rows) == 1 else DATA["ARTICLE_COUNT_PLURAL"]).format(count=len(rows)))
@@ -1047,6 +1058,7 @@ QTableWidget::item { border: 0; padding: 4px; }
 #detailValue { color: #737d75; font-size: 11px; }
 #doneIcon, #pendingIcon { background: transparent; border: 0; }
 #stageDate { color: #89928b; font-size: 10px; }
+#stageElapsed { color: #a0a8a1; font-size: 9px; }
 #footerText { color: #9aa19b; font-size: 11px; }
 #legendDone { color: #69846f; font-size: 11px; }
 #legendPending { color: #a1a7a1; font-size: 11px; }
