@@ -1005,8 +1005,8 @@ class MainWindow(QMainWindow):
             heights.append(max(cell_heights, default=1))
         if not heights:
             return
-        for row, height in enumerate(heights):
-            self.table.setRowHeight(row, height)
+        #for row, height in enumerate(heights):
+            #self.table.setRowHeight(row, height+30)
 
     def load_articles(self) -> list[dict[str, Any]]:
         try:
