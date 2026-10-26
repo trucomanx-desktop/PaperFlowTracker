@@ -800,7 +800,7 @@ class MainWindow(QMainWindow):
         layout.setSpacing(9)
         
         brand = QLabel()
-        brand.setPixmap(QPixmap(QIcon(resource_path("icons", "text-x-copying.svg")).pixmap(QSize(96, 96))))
+        brand.setPixmap(QPixmap(QIcon(self.icon_path).pixmap(QSize(96, 96))))
         brand.setObjectName("brand")
         layout.addWidget(brand)
         layout.addSpacing(25)
