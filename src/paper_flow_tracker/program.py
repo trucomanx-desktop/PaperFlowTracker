@@ -60,7 +60,6 @@ CONFIG_DEFAULTS = {
     "TABLE_TITLE_ARTICLE_TOOLTIP": "Article and submission data",
     "LEGEND_COMPLETED": "Completed",
     "LEGEND_PENDING": "Pending",
-    "ARTICLE_MENU_TOOLTIP": "Double-click to edit",
     "ARTICLE_MENU_EDIT": "Edit article",
     "ARTICLE_MENU_REMOVE": "Remove article",
     "ARTDLG_WINDOW_TITLE_EDIT": "Edit article",
@@ -289,7 +288,7 @@ class StageDateDialog(QDialog):
 
 
 class ArticleCard(QFrame):
-    def __init__(self, article: dict[str, Any], parent=None):
+    def __init__(self, article: dict[str, Any], on_edit=None, on_remove=None, parent=None):
         super().__init__(parent)
         self.setObjectName("articleCard")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
@@ -298,6 +297,33 @@ class ArticleCard(QFrame):
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(10)
         layout.setAlignment(Qt.AlignTop)
+
+        actions = QHBoxLayout()
+        actions.setContentsMargins(0, 0, 0, 0)
+        actions.setSpacing(4)
+        edit_button = QPushButton()
+        edit_button.setObjectName("cardActionButton")
+        edit_button.setIcon(QIcon(resource_path("icons", "text-editor-symbolic.svg")))
+        edit_button.setIconSize(QSize(16, 16))
+        edit_button.setFixedSize(26, 26)
+        edit_button.setToolTip(DATA["ARTICLE_MENU_EDIT"])
+        edit_button.setAccessibleName(DATA["ARTICLE_MENU_EDIT"])
+        edit_button.setCursor(Qt.PointingHandCursor)
+        edit_button.clicked.connect(lambda checked=False: on_edit() if on_edit else None)
+        remove_button = QPushButton()
+        remove_button.setObjectName("cardActionButton")
+        remove_button.setIcon(QIcon(resource_path("icons", "user-trash-symbolic.svg")))
+        remove_button.setIconSize(QSize(16, 16))
+        remove_button.setFixedSize(26, 26)
+        remove_button.setToolTip(DATA["ARTICLE_MENU_REMOVE"])
+        remove_button.setAccessibleName(DATA["ARTICLE_MENU_REMOVE"])
+        remove_button.setCursor(Qt.PointingHandCursor)
+        remove_button.clicked.connect(lambda checked=False: on_remove() if on_remove else None)
+        actions.addWidget(edit_button)
+        actions.addWidget(remove_button)
+        actions.addStretch(1)
+        layout.addLayout(actions)
+
         title = QLabel(article.get("title") or DATA["ARTCARD_WITHOUT_TITLE"])
         title.setObjectName("articleTitle")
         title.setWordWrap(True)
@@ -1037,17 +1063,12 @@ class MainWindow(QMainWindow):
         
         article_widths = []
         for row, article in enumerate(rows):
-            card = ArticleCard(article)
+            card = ArticleCard(
+                article,
+                on_edit=lambda current=article: self.edit_article(current),
+                on_remove=lambda current=article: self.delete_article(current),
+            )
             article_widths.append(card.sizeHint().width() + 8)
-            card.setToolTip(DATA["ARTICLE_MENU_TOOLTIP"])
-            card.mouseDoubleClickEvent = lambda event, current=article: self.edit_article(current)
-            card.setContextMenuPolicy(Qt.ActionsContextMenu)
-            edit_action = QAction(DATA["ARTICLE_MENU_EDIT"], card)
-            edit_action.triggered.connect(lambda checked=False, current=article: self.edit_article(current))
-            delete_action = QAction(DATA["ARTICLE_MENU_REMOVE"], card)
-            delete_action.triggered.connect(lambda checked=False, current=article: self.delete_article(current))
-            card.addAction(edit_action)
-            card.addAction(delete_action)
             self.table.setCellWidget(row, 0, card)
             stages = article.get("stages", {})
             for col, (key, _label, full_title, description) in enumerate(DATA["STAGES"], start=1):
@@ -1140,6 +1161,9 @@ QComboBox::drop-down { border: 0; width: 26px; }
 QComboBox QAbstractItemView { background: #ffffff; border: 1px solid #e6e8e1; selection-background-color: #e6eee5; selection-color: #3c443e; }
 QPushButton#primaryButton { background: #58765f; color: white; border: 0; border-radius: 9px; padding: 11px 16px; font-weight: 600; }
 QPushButton#primaryButton:hover { background: #496a52; }
+QPushButton#cardActionButton { background: transparent; border: 0; border-radius: 6px; padding: 3px; }
+QPushButton#cardActionButton:hover { background: #e8ece6; }
+QPushButton#cardActionButton:pressed { background: #dce4dc; }
 QTableWidget { background: transparent; border: 0; outline: 0; }
 QHeaderView::section { color: #8b938c; background: transparent; border: 0; border-bottom: 1px solid #e5e8e1; padding: 11px 6px; font-size: 10px; font-weight: 700; }
 QTableWidget::item { border: 0; padding: 4px; }
