@@ -82,6 +82,52 @@ CONFIG_DEFAULTS = {
         ["acceptance", "Acceptance", "Acceptance", "Confirmation that the article has been accepted for publication."],
         ["online_publication", "Online publication", "Online publication", "Date on which the article became available online."],
     ],
+    "BUTTON_SAVE": "Save",
+    "BUTTON_CANCEL": "Cancel",
+    "BUTTON_CLOSE": "Close",
+    "SEARCH_ACTION": "Search",
+    "SETTINGS_DATA_LOCATION": "Your data is stored locally in this file:",
+    "SETTINGS_OPEN_CONFIGURE": "Open configure.json in text editor",
+    "SETTINGS_EXPORT_DATA": "Export data…",
+    "SETTINGS_IMPORT_DATA": "Import data…",
+    "EXPORT_DIALOG_TITLE": "Export articles",
+    "IMPORT_DIALOG_TITLE": "Import articles",
+    "JSON_FILE_FILTER": "JSON (*.json)",
+    "EXPORT_SUCCESS_TITLE": "Export complete",
+    "EXPORT_SUCCESS_MESSAGE": "The data was exported.",
+    "EXPORT_ERROR_TITLE": "Export error",
+    "IMPORT_SUCCESS_TITLE": "Import complete",
+    "IMPORT_SUCCESS_MESSAGE": "The data was imported.",
+    "IMPORT_ERROR_TITLE": "Import error",
+    "IMPORT_INVALID_FILE": "The file must contain a list of articles.",
+    "JSON_VIEWER_DESCRIPTION": "Formatted JSON · read-only",
+    "JSON_COPY": "Copy JSON",
+    "JSON_COPIED": "JSON copied to clipboard",
+    "STATS_SUBTITLE": "A summary of progress and submission history",
+    "STATS_SCOPE_LABEL": "Show data for",
+    "STATS_ALL_JOURNALS": "All journals",
+    "STATS_NO_JOURNAL": "No journal specified",
+    "STATS_ACTIVE_ARTICLES": "ACTIVE ARTICLES",
+    "STATS_NO_ONLINE_DATE": "No online publication date",
+    "STATS_STAGE_TIMES": "Time to each stage",
+    "STATS_STAGE_TIMES_NOTE": "Days from submission to the date recorded for each stage.",
+    "STATS_TABLE_HEADERS": ["STAGE", "ARTICLES (N)", "MEAN · DAYS", "STANDARD DEVIATION · DAYS"],
+    "STATS_SUBMISSIONS_BY_YEAR": "Submissions by year",
+    "STATS_VALID_DATES_NOTE": "Statistics use only available and valid dates.",
+    "STATS_JSON_BUTTON": "View / copy JSON…",
+    "STATS_JSON_TITLE": "JSON · Statistics",
+    "STATS_NO_SUBMISSIONS_BY_YEAR": "There are no submission dates to group by year yet.",
+    "STATS_ARTICLE_COUNT_SINGULAR": "{count} article",
+    "STATS_ARTICLE_COUNT_PLURAL": "{count} articles",
+    "ARTICLE_COUNT_SINGULAR": "{count} article",
+    "ARTICLE_COUNT_PLURAL": "{count} articles",
+    "DELETE_ARTICLE_TITLE": "Remove article",
+    "DELETE_ARTICLE_QUESTION": "Remove “{title}”?",
+    "OPEN_FILE_ERROR_TITLE": "Could not open the file",
+    "URL_NOT_CONFIGURED_TITLE": "URL not configured",
+    "URL_NOT_CONFIGURED_MESSAGE": "Set CONFIG_GPT['usage'] to open that page.",
+    "JOURNALS_JSON_TITLE": "Journals · use by article",
+    "SEARCH_ACTION": "Search",
 }
 DATA = configure.load_config(str(CONFIG_PATH), CONFIG_DEFAULTS)
 
@@ -160,6 +206,8 @@ class ArticleDialog(QDialog):
             form.addRow(full_title, row)
         outer.addLayout(form)
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Save).setText(DATA["BUTTON_SAVE"])
+        buttons.button(QDialogButtonBox.Cancel).setText(DATA["BUTTON_CANCEL"])
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         outer.addWidget(buttons)
@@ -281,51 +329,52 @@ class SettingsDialog(QDialog):
         self.setMinimumWidth(440)
         self.path = path
         layout = QVBoxLayout(self)
-        label = QLabel("Seus dados são salvos localmente neste arquivo:")
+        label = QLabel(DATA["SETTINGS_DATA_LOCATION"])
         label.setWordWrap(True)
         layout.addWidget(label)
         location = QLineEdit(str(path))
         location.setReadOnly(True)
         layout.addWidget(location)
-        edit_config_button = QPushButton("Abrir configure.json no editor de texto")
+        edit_config_button = QPushButton(DATA["SETTINGS_OPEN_CONFIGURE"])
         edit_config_button.setObjectName("secondaryButton")
         edit_config_button.clicked.connect(parent.open_configure_editor)
         layout.addWidget(edit_config_button)
         buttons = QHBoxLayout()
-        export_button = QPushButton("Exportar dados…")
-        import_button = QPushButton("Importar dados…")
+        export_button = QPushButton(DATA["SETTINGS_EXPORT_DATA"])
+        import_button = QPushButton(DATA["SETTINGS_IMPORT_DATA"])
         buttons.addWidget(export_button)
         buttons.addWidget(import_button)
         layout.addLayout(buttons)
         export_button.clicked.connect(lambda: self._export(parent))
         import_button.clicked.connect(lambda: self._import(parent))
         close = QDialogButtonBox(QDialogButtonBox.Close)
+        close.button(QDialogButtonBox.Close).setText(DATA["BUTTON_CLOSE"])
         close.rejected.connect(self.reject)
         layout.addWidget(close)
 
     def _export(self, parent):
-        filename, _ = QFileDialog.getSaveFileName(self, "Exportar artigos", "artigos.json", "JSON (*.json)")
+        filename, _ = QFileDialog.getSaveFileName(self, DATA["EXPORT_DIALOG_TITLE"], "articles.json", DATA["JSON_FILE_FILTER"])
         if filename:
             try:
                 Path(filename).write_text(self.path.read_text(encoding="utf-8"), encoding="utf-8")
-                QMessageBox.information(self, "Exportação concluída", "Os dados foram exportados.")
+                QMessageBox.information(self, DATA["EXPORT_SUCCESS_TITLE"], DATA["EXPORT_SUCCESS_MESSAGE"])
             except OSError as exc:
-                QMessageBox.critical(self, "Erro ao exportar", str(exc))
+                QMessageBox.critical(self, DATA["EXPORT_ERROR_TITLE"], str(exc))
 
     def _import(self, parent):
-        filename, _ = QFileDialog.getOpenFileName(self, "Importar artigos", "", "JSON (*.json)")
+        filename, _ = QFileDialog.getOpenFileName(self, DATA["IMPORT_DIALOG_TITLE"], "", DATA["JSON_FILE_FILTER"])
         if not filename:
             return
         try:
             imported = json.loads(Path(filename).read_text(encoding="utf-8"))
             if not isinstance(imported, list) or any(not isinstance(row, dict) for row in imported):
-                raise ValueError("O arquivo deve conter uma lista de artigos.")
+                raise ValueError(DATA["IMPORT_INVALID_FILE"])
             parent.articles = imported
             parent.save_articles()
             parent.refresh_table()
-            QMessageBox.information(self, "Importação concluída", "Os dados foram importados.")
+            QMessageBox.information(self, DATA["IMPORT_SUCCESS_TITLE"], DATA["IMPORT_SUCCESS_MESSAGE"])
         except (OSError, json.JSONDecodeError, ValueError) as exc:
-            QMessageBox.critical(self, "Erro ao importar", str(exc))
+            QMessageBox.critical(self, DATA["IMPORT_ERROR_TITLE"], str(exc))
 
 
 class JsonViewerDialog(QDialog):
@@ -337,7 +386,7 @@ class JsonViewerDialog(QDialog):
         self.resize(600, 500)
         self.setMinimumSize(460, 320)
         layout = QVBoxLayout(self)
-        intro = QLabel("JSON formatado · somente leitura")
+        intro = QLabel(DATA["JSON_VIEWER_DESCRIPTION"])
         intro.setObjectName("dialogIntro")
         layout.addWidget(intro)
         self.text = QPlainTextEdit()
@@ -351,11 +400,11 @@ class JsonViewerDialog(QDialog):
         self.copy_status.setObjectName("copyStatus")
         footer.addWidget(self.copy_status)
         footer.addStretch(1)
-        copy_button = QPushButton("Copiar JSON")
+        copy_button = QPushButton(DATA["JSON_COPY"])
         copy_button.setObjectName("primaryButton")
         copy_button.clicked.connect(self.copy_json)
         footer.addWidget(copy_button)
-        close_button = QPushButton("Fechar")
+        close_button = QPushButton(DATA["BUTTON_CLOSE"])
         close_button.setObjectName("secondaryButton")
         close_button.clicked.connect(self.accept)
         footer.addWidget(close_button)
@@ -363,7 +412,7 @@ class JsonViewerDialog(QDialog):
 
     def copy_json(self):
         QApplication.clipboard().setText(self.text.toPlainText())
-        self.copy_status.setText("JSON copiado para a área de transferência")
+        self.copy_status.setText(DATA["JSON_COPIED"])
 
 
 class StatisticsDialog(QDialog):
@@ -381,21 +430,21 @@ class StatisticsDialog(QDialog):
         heading = QVBoxLayout()
         title = QLabel(DATA["STATISTICS"])
         title.setObjectName("dialogTitle")
-        subtitle = QLabel("Um resumo do andamento e do histórico de submissões")
+        subtitle = QLabel(DATA["STATS_SUBTITLE"])
         subtitle.setObjectName("subtitle")
         heading.addWidget(title)
         heading.addWidget(subtitle)
         outer.addLayout(heading)
 
         scope_row = QHBoxLayout()
-        scope_label = QLabel("Ver dados de")
+        scope_label = QLabel(DATA["STATS_SCOPE_LABEL"])
         scope_label.setObjectName("scopeLabel")
         self.scope_combo = QComboBox()
-        self.scope_combo.addItem("Todas as revistas", None)
+        self.scope_combo.addItem(DATA["STATS_ALL_JOURNALS"], None)
         for journal in journal_usage(articles):
             self.scope_combo.addItem(journal, journal)
         if any(not str(article.get("journal", "")).strip() for article in articles):
-            self.scope_combo.addItem("Sem revista informada", "__no_journal__")
+            self.scope_combo.addItem(DATA["STATS_NO_JOURNAL"], "__no_journal__")
         self.scope_combo.setMinimumWidth(240)
         scope_row.addWidget(scope_label)
         scope_row.addWidget(self.scope_combo)
@@ -416,7 +465,7 @@ class StatisticsDialog(QDialog):
         active_layout = QHBoxLayout(active_card)
         active_layout.setContentsMargins(20, 15, 20, 15)
         active_details = QVBoxLayout()
-        active_title = QLabel("ARTIGOS ATIVOS")
+        active_title = QLabel(DATA["STATS_ACTIVE_ARTICLES"])
         active_title.setObjectName("summaryEyebrow")
         self.active_number = QLabel("0")
         self.active_number.setObjectName("summaryNumber")
@@ -424,20 +473,20 @@ class StatisticsDialog(QDialog):
         active_details.addWidget(self.active_number)
         active_layout.addLayout(active_details)
         active_layout.addStretch(1)
-        active_note = QLabel("Sem data de publicação online")
+        active_note = QLabel(DATA["STATS_NO_ONLINE_DATE"])
         active_note.setObjectName("summaryNote")
         active_layout.addWidget(active_note, alignment=Qt.AlignVCenter)
         content.addWidget(active_card)
 
-        stage_heading = QLabel("Tempo até cada etapa")
+        stage_heading = QLabel(DATA["STATS_STAGE_TIMES"])
         stage_heading.setObjectName("sectionTitle")
         content.addWidget(stage_heading)
-        stage_note = QLabel("Dias desde a submissão até a data registrada em cada etapa.")
+        stage_note = QLabel(DATA["STATS_STAGE_TIMES_NOTE"])
         stage_note.setObjectName("sectionNote")
         content.addWidget(stage_note)
         self.metrics = QTableWidget(len(DATA["STAGES"]), 4)
         self.metrics.setObjectName("statsTable")
-        self.metrics.setHorizontalHeaderLabels(["ETAPA", "ARTIGOS (N)", "MÉDIA · DIAS", "DESVIO-PADRÃO · DIAS"])
+        self.metrics.setHorizontalHeaderLabels(DATA["STATS_TABLE_HEADERS"])
         self.metrics.verticalHeader().setVisible(False)
         self.metrics.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.metrics.setSelectionMode(QAbstractItemView.NoSelection)
@@ -455,7 +504,7 @@ class StatisticsDialog(QDialog):
             self.metrics.setRowHeight(row, 42)
         content.addWidget(self.metrics)
 
-        year_title = QLabel("Submissões por ano")
+        year_title = QLabel(DATA["STATS_SUBMISSIONS_BY_YEAR"])
         year_title.setObjectName("sectionTitle")
         content.addWidget(year_title)
         self.year_layout = QVBoxLayout()
@@ -467,15 +516,15 @@ class StatisticsDialog(QDialog):
         outer.addWidget(scroll, 1)
 
         footer = QHBoxLayout()
-        hint = QLabel("Estatísticas calculadas apenas com datas disponíveis e válidas.")
+        hint = QLabel(DATA["STATS_VALID_DATES_NOTE"])
         hint.setObjectName("copyStatus")
         footer.addWidget(hint)
         footer.addStretch(1)
-        json_button = QPushButton("Ver / copiar JSON…")
+        json_button = QPushButton(DATA["STATS_JSON_BUTTON"])
         json_button.setObjectName("primaryButton")
-        json_button.clicked.connect(lambda: JsonViewerDialog("JSON · Estatísticas", self.payload, self).exec_())
+        json_button.clicked.connect(lambda: JsonViewerDialog(DATA["STATS_JSON_TITLE"], self.payload, self).exec_())
         footer.addWidget(json_button)
-        close_button = QPushButton("Fechar")
+        close_button = QPushButton(DATA["BUTTON_CLOSE"])
         close_button.setObjectName("secondaryButton")
         close_button.clicked.connect(self.accept)
         footer.addWidget(close_button)
@@ -487,10 +536,10 @@ class StatisticsDialog(QDialog):
         selected_journal = self.scope_combo.currentData()
         if selected_journal is None:
             articles = self.articles
-            scope_label = "Todas as revistas"
+            scope_label = DATA["STATS_ALL_JOURNALS"]
         elif selected_journal == "__no_journal__":
             articles = [a for a in self.articles if not str(a.get("journal", "")).strip()]
-            scope_label = "Sem revista informada"
+            scope_label = DATA["STATS_NO_JOURNAL"]
         else:
             articles = [a for a in self.articles if str(a.get("journal", "")).strip() == selected_journal]
             scope_label = str(selected_journal)
@@ -551,7 +600,7 @@ class StatisticsDialog(QDialog):
             if widget is not None:
                 widget.deleteLater()
         if not by_year:
-            empty = QLabel("Ainda não há datas de submissão para agrupar por ano.")
+            empty = QLabel(DATA["STATS_NO_SUBMISSIONS_BY_YEAR"])
             empty.setObjectName("emptyState")
             self.year_layout.addWidget(empty)
             return
@@ -570,7 +619,7 @@ class StatisticsDialog(QDialog):
             bar.setValue(count)
             bar.setTextVisible(False)
             bar.setFixedHeight(10)
-            count_label = QLabel(f"{count} artigo" + ("s" if count != 1 else ""))
+            count_label = QLabel((DATA["STATS_ARTICLE_COUNT_SINGULAR"] if count == 1 else DATA["STATS_ARTICLE_COUNT_PLURAL"]).format(count=count))
             count_label.setObjectName("yearCount")
             count_label.setFixedWidth(85)
             row.addWidget(year_label)
@@ -712,7 +761,7 @@ class MainWindow(QMainWindow):
         self.search.setPlaceholderText(DATA["SEARCH_FOR_ARTICLES"])
         self.search.setFixedWidth(DATA["SEARCH_WIDTH"])
         self.search.textChanged.connect(self.refresh_table)
-        search_action = QAction(QIcon(resource_path("icons", "edit-find-symbolic.svg")),"Search",self.search)
+        search_action = QAction(QIcon(resource_path("icons", "edit-find-symbolic.svg")), DATA["SEARCH_ACTION"], self.search)
         self.search.addAction(search_action,QLineEdit.LeadingPosition)
         top.addWidget(self.search)
         
@@ -848,7 +897,7 @@ class MainWindow(QMainWindow):
             self.refresh_table()
 
     def delete_article(self, article: dict[str, Any]):
-        answer = QMessageBox.question(self, "Remover artigo", f"Remover “{article.get('title', 'Sem título')}”?")
+        answer = QMessageBox.question(self, DATA["DELETE_ARTICLE_TITLE"], DATA["DELETE_ARTICLE_QUESTION"].format(title=article.get("title") or DATA["ARTCARD_WITHOUT_TITLE"]))
         if answer == QMessageBox.Yes:
             self.articles = [item for item in self.articles if item.get("id") != article.get("id")]
             self.save_articles()
@@ -885,7 +934,7 @@ class MainWindow(QMainWindow):
                 self.table.setCellWidget(row, col, StageCard(stages.get(key), description))
             self.table.setRowHeight(row, 132)
         self.article_column_min_width = max(article_widths, default=DATA["STATUS_COLUMN_WIDTH"])
-        self.count.setText(f"{len(rows)} article" + ("s" if len(rows) != 1 else "") )
+        self.count.setText((DATA["ARTICLE_COUNT_SINGULAR"] if len(rows) == 1 else DATA["ARTICLE_COUNT_PLURAL"]).format(count=len(rows)))
         labels = [DATA["TABLE_TITLE_ARTICLE"]] + [stage[1] for stage in DATA["STAGES"]]
         for col, label in enumerate(labels):
             self.table.horizontalHeaderItem(col).setText(label)
@@ -921,7 +970,7 @@ class MainWindow(QMainWindow):
             elif os.name == "posix":  # Linux/macOS
                 subprocess.run(["xdg-open", str(filepath)], check=True)
         except (OSError, subprocess.SubprocessError) as exc:
-            QMessageBox.warning(self, "Não foi possível abrir o arquivo", str(exc))
+            QMessageBox.warning(self, DATA["OPEN_FILE_ERROR_TITLE"], str(exc))
 
     def open_url_usage_editor(self):
         config_gpt = globals().get("CONFIG_GPT", {})
@@ -929,7 +978,7 @@ class MainWindow(QMainWindow):
         if usage_url:
             QDesktopServices.openUrl(QUrl(str(usage_url)))
         else:
-            QMessageBox.information(self, "URL não configurada", "Defina CONFIG_GPT['usage'] para abrir essa página.")
+            QMessageBox.information(self, DATA["URL_NOT_CONFIGURED_TITLE"], DATA["URL_NOT_CONFIGURED_MESSAGE"])
 
     def open_configure_editor(self):
         self._open_file_in_text_editor(CONFIG_PATH)
@@ -938,7 +987,7 @@ class MainWindow(QMainWindow):
         StatisticsDialog(self.articles, self).exec_()
 
     def open_journals(self):
-        JsonViewerDialog("Revistas · uso por artigo", journal_usage(self.articles), self).exec_()
+        JsonViewerDialog(DATA["JOURNALS_JSON_TITLE"], journal_usage(self.articles), self).exec_()
 
 
 STYLESHEET = """
