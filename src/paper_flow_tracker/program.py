@@ -184,8 +184,12 @@ class ArticleDialog(QDialog):
         outer.addWidget(intro)
         form = QFormLayout()
         form.setSpacing(12)
-        self.title_edit = QLineEdit(self.article.get("title", ""))
-        self.authors_edit = QLineEdit(self.article.get("authors", ""))
+        self.title_edit = QPlainTextEdit()
+        self.title_edit.setPlainText(self.article.get("title", ""))
+        self.title_edit.setMinimumHeight(64)
+        self.authors_edit = QPlainTextEdit()
+        self.authors_edit.setPlainText(self.article.get("authors", ""))
+        self.authors_edit.setMinimumHeight(64)
         self.journal_edit = QLineEdit(self.article.get("journal", ""))
         self.submission = self._date_field(self.article.get("submission_date"))
         self.stage_dates: dict[str, tuple[QCheckBox, QDateEdit]] = {}
@@ -237,15 +241,15 @@ class ArticleDialog(QDialog):
         }
         return {
             "id": self.article.get("id") or datetime.now().strftime("%Y%m%d%H%M%S%f"),
-            "title": self.title_edit.text().strip(),
-            "authors": self.authors_edit.text().strip(),
+            "title": self.title_edit.toPlainText().strip(),
+            "authors": self.authors_edit.toPlainText().strip(),
             "journal": self.journal_edit.text().strip(),
             "submission_date": self._iso(self.submission),
             "stages": stages,
         }
 
     def accept(self):
-        if not self.title_edit.text().strip():
+        if not self.title_edit.toPlainText().strip():
             QMessageBox.warning(self, DATA["ARTDLG_TITLE_REQUIRED"], DATA["ARTDLG_TITLE_REQUIRED_DESCRIPTION"])
             self.title_edit.setFocus()
             return
