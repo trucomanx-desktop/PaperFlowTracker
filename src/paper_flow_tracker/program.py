@@ -42,7 +42,6 @@ CONFIG_DEFAULTS = {
     "STATUS_ICON_SIZE": 32,
     "LEGEND_ICON_SIZE": 18,
     "ARTICLE_META_ICON_SIZE": 18,
-    "UNIFORM_ROW_HEIGHT": False,
     "STATUS_COLUMN_WIDTH": 120,
     "PANEL": "Panel",
     "STATISTICS": "Statistics",
@@ -293,10 +292,12 @@ class ArticleCard(QFrame):
     def __init__(self, article: dict[str, Any], parent=None):
         super().__init__(parent)
         self.setObjectName("articleCard")
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        #self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         layout = QVBoxLayout(self)
+        #layout.setContentsMargins(esquerda, superior, direita, inferior)
         layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(5)
+        #layout.setSpacing(5)
+        layout.setSpacing(0) # Este sim aumenta o spacing vertical
         title = QLabel(article.get("title") or DATA["ARTCARD_WITHOUT_TITLE"])
         title.setObjectName("articleTitle")
         title.setWordWrap(True)
@@ -316,14 +317,18 @@ class ArticleCard(QFrame):
                         display_date(article.get("submission_date")) or DATA["ARTCARD_WITHOUT_DATE"] )
         url = str(article.get("url") or "").strip()
         if url:
-            self._detail(layout, resource_path("icons", "emblem-symbolic-link.svg"), QStyle.SP_DirLinkIcon, url, link=True)
+            self._detail(layout, resource_path("icons", "web-browser-symbolic.svg"), QStyle.SP_DirLinkIcon, url, link=True)
         source = str(article.get("source") or "").strip()
         if source:
-            self._detail(layout, resource_path("icons", "text-x-generic.svg"), QStyle.SP_FileLinkIcon, source, link=True)
+            self._detail(layout, resource_path("icons", "web-browser-symbolic.svg"), QStyle.SP_FileLinkIcon, source, link=True)
 
     def _detail(self, layout: QVBoxLayout, img_path: str, fallback, value: str, link: bool = False):
         line = QHBoxLayout()
-        line.setSpacing(6)
+        #layout.setContentsMargins(esquerda, superior, direita, inferior)
+        line.setContentsMargins(0, 0, 0, 0)
+        #line.setSpacing(0)
+        line.setSpacing(6) 
+        
         icon = QLabel()
         icon.setObjectName("detailIcon")
         icon.setFixedSize(DATA["ARTICLE_META_ICON_SIZE"], DATA["ARTICLE_META_ICON_SIZE"])
@@ -331,6 +336,7 @@ class ArticleCard(QFrame):
         if qicon.isNull():
             qicon = self.style().standardIcon(fallback)
         icon.setPixmap(qicon.pixmap(DATA["ARTICLE_META_ICON_SIZE"], DATA["ARTICLE_META_ICON_SIZE"]))
+        
         val = QLabel(value)
         val.setObjectName("detailValue")
         val.setWordWrap(True)
@@ -342,6 +348,7 @@ class ArticleCard(QFrame):
                 val.setText(f'<a href="{href}">{escape(value)}</a>')
                 val.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
                 val.setOpenExternalLinks(True)
+        
         line.addWidget(icon)
         line.addWidget(val, 1)
         layout.addLayout(line)
