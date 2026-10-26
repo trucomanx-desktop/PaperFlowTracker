@@ -7,6 +7,7 @@ import json
 import signal
 import statistics
 import subprocess
+from html import escape
 
 from datetime import date, datetime
 from pathlib import Path
@@ -41,7 +42,7 @@ CONFIG_DEFAULTS = {
     "STATUS_ICON_SIZE": 32,
     "LEGEND_ICON_SIZE": 18,
     "ARTICLE_META_ICON_SIZE": 18,
-    "UNIFORM_ROW_HEIGHT": True,
+    "UNIFORM_ROW_HEIGHT": False,
     "STATUS_COLUMN_WIDTH": 120,
     "PANEL": "Panel",
     "STATISTICS": "Statistics",
@@ -71,6 +72,8 @@ CONFIG_DEFAULTS = {
     "ARTDLG_TITLE": "Title",
     "ARTDLG_AUTHORS": "Authors",
     "ARTDLG_JOURNAL": "Journal",
+    "ARTDLG_URL": "URL",
+    "ARTDLG_SOURCE": "Source",
     "ARTDLG_SUBMISSION_DATE": "Submission date",
     "ARTDLG_COMPLETED": "Completed",
     "ARTDLG_TITLE_REQUIRED": "Title required",
@@ -194,11 +197,15 @@ class ArticleDialog(QDialog):
         self.authors_edit.setPlainText(self.article.get("authors", ""))
         self.authors_edit.setMinimumHeight(64)
         self.journal_edit = QLineEdit(self.article.get("journal", ""))
+        self.url_edit = QLineEdit(self.article.get("url", ""))
+        self.source_edit = QLineEdit(self.article.get("source", ""))
         self.submission = self._date_field(self.article.get("submission_date"))
         self.stage_dates: dict[str, tuple[QCheckBox, QDateEdit]] = {}
         form.addRow(DATA["ARTDLG_TITLE"], self.title_edit)
         form.addRow(DATA["ARTDLG_AUTHORS"], self.authors_edit)
         form.addRow(DATA["ARTDLG_JOURNAL"], self.journal_edit)
+        form.addRow(DATA["ARTDLG_URL"], self.url_edit)
+        form.addRow(DATA["ARTDLG_SOURCE"], self.source_edit)
         form.addRow(DATA["ARTDLG_SUBMISSION_DATE"], self.submission)
         for key, _label, full_title, _description in DATA["STAGES"]:
             row = QWidget()
@@ -247,6 +254,8 @@ class ArticleDialog(QDialog):
             "title": self.title_edit.toPlainText().strip(),
             "authors": self.authors_edit.toPlainText().strip(),
             "journal": self.journal_edit.text().strip(),
+            "url": self.url_edit.text().strip(),
+            "source": self.source_edit.text().strip(),
             "submission_date": self._iso(self.submission),
             "stages": stages,
         }
@@ -291,6 +300,7 @@ class ArticleCard(QFrame):
         title = QLabel(article.get("title") or DATA["ARTCARD_WITHOUT_TITLE"])
         title.setObjectName("articleTitle")
         title.setWordWrap(True)
+        title.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layout.addWidget(title)
         self._detail(   layout, 
                         resource_path("icons", "system-users-symbolic.svg"), 
@@ -304,8 +314,14 @@ class ArticleCard(QFrame):
                         resource_path("icons", "x-office-calendar-symbolic.svg"), 
                         QStyle.SP_FileDialogContentsView, 
                         display_date(article.get("submission_date")) or DATA["ARTCARD_WITHOUT_DATE"] )
+        url = str(article.get("url") or "").strip()
+        if url:
+            self._detail(layout, resource_path("icons", "emblem-symbolic-link.svg"), QStyle.SP_DirLinkIcon, url, link=True)
+        source = str(article.get("source") or "").strip()
+        if source:
+            self._detail(layout, resource_path("icons", "text-x-generic.svg"), QStyle.SP_FileLinkIcon, source, link=True)
 
-    def _detail(self, layout: QVBoxLayout, img_path: str, fallback, value: str):
+    def _detail(self, layout: QVBoxLayout, img_path: str, fallback, value: str, link: bool = False):
         line = QHBoxLayout()
         line.setSpacing(6)
         icon = QLabel()
@@ -318,6 +334,14 @@ class ArticleCard(QFrame):
         val = QLabel(value)
         val.setObjectName("detailValue")
         val.setWordWrap(True)
+        val.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        if link:
+            parsed_url = QUrl.fromUserInput(value)
+            if parsed_url.isValid() and parsed_url.scheme().lower() in {"http", "https"}:
+                href = escape(parsed_url.toString(QUrl.FullyEncoded), quote=True)
+                val.setText(f'<a href="{href}">{escape(value)}</a>')
+                val.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
+                val.setOpenExternalLinks(True)
         line.addWidget(icon)
         line.addWidget(val, 1)
         layout.addLayout(line)
@@ -994,7 +1018,7 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "table"):
             return
         query = self.search.text().strip().casefold() if hasattr(self, "search") else ""
-        rows = [a for a in self.articles if not query or query in " ".join(str(a.get(k, "")) for k in ("title", "authors", "journal")).casefold()]
+        rows = [a for a in self.articles if not query or query in " ".join(str(a.get(k, "")) for k in ("title", "authors", "journal", "url", "source")).casefold()]
         if self.sort_column >= 1:
             key = DATA["STAGES"][self.sort_column - 1][0]
             rows = self._sort_with_empty_dates_last(rows, lambda a: a.get("stages", {}).get(key))
