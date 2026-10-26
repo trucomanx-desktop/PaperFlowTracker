@@ -66,6 +66,7 @@ CONFIG_DEFAULTS = {
     "ARTDLG_WINDOW_TITLE_EDIT": "Edit article",
     "ARTDLG_WINDOW_TITLE_NEW": "New article",
     "ARTDLG_WINDOW_WIDTH": 480,
+    "ARTDLG_WINDOW_HEIGHT": 560,
     "ARTDLG_DESCRIPTION": "Article information and dates of editorial stages",
     "ARTDLG_TITLE": "Title",
     "ARTDLG_AUTHORS": "Authors",
@@ -116,6 +117,7 @@ CONFIG_DEFAULTS = {
     "STAGE_ELAPSED_DAYS": "+{days} days",
     "STAGE_CARD_EDIT_TOOLTIP": "Double-click to edit the date",
     "STAGEDLG_DATE": "Date",
+    "STAGEDLG_MIN_WIDTH": 340,
     "STATS_TABLE_HEADERS": ["STAGE", "ARTICLES (N)", "MEAN · DAYS", "STANDARD DEVIATION · DAYS"],
     "STATS_SUBMISSIONS_BY_YEAR": "Submissions by year",
     "STATS_VALID_DATES_NOTE": "Statistics use only available and valid dates.",
@@ -177,6 +179,7 @@ class ArticleDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(DATA["ARTDLG_WINDOW_TITLE_EDIT"] if article else DATA["ARTDLG_WINDOW_TITLE_NEW"])
         self.setMinimumWidth(DATA["ARTDLG_WINDOW_WIDTH"])
+        self.resize(DATA["ARTDLG_WINDOW_WIDTH"], DATA["ARTDLG_WINDOW_HEIGHT"])
         self.article = article or {}
         outer = QVBoxLayout(self)
         intro = QLabel(DATA["ARTDLG_DESCRIPTION"])
@@ -259,7 +262,7 @@ class StageDateDialog(QDialog):
     def __init__(self, stage_title: str, value: str | None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(stage_title)
-        self.setMinimumWidth(340)
+        self.setMinimumWidth(DATA["STAGEDLG_MIN_WIDTH"])
         layout = QVBoxLayout(self)
         form = QFormLayout()
         self.date_edit = ArticleDialog._date_field(value)
