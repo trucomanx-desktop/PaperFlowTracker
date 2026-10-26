@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
     QFileDialog, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel,
     QLineEdit, QMainWindow, QMessageBox, QPushButton, QSizePolicy, QSpacerItem,
     QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QAbstractItemView,
-    QStyle, QPlainTextEdit, QProgressBar, QScrollArea, QComboBox,
+    QStyle, QPlainTextEdit, QProgressBar, QScrollArea, QComboBox, QStackedWidget,
 )
 
 import paper_flow_tracker.about as about
@@ -32,7 +32,7 @@ from paper_flow_tracker.desktop import create_desktop_file, create_desktop_direc
 
 
 
-CONFIG_PATH = Path.home() / ".local" / "share" / "painel_de_artigos" / "configure.json"
+CONFIG_PATH = Path.home() / ".local" / "share" / about.__package__ / "configure.json"
 CONFIG_DEFAULTS = {
     "WINDOW_WIDTH": 1460,
     "WINDOW_HEIGHT": 850,
@@ -48,6 +48,8 @@ CONFIG_DEFAULTS = {
     "JOURNALS": "Journals",
     "CONFIGURATION": "Configuration",
     "ABOUT": "About",
+    "COFFEE": "Coffee",
+    "COFFEE_TOOLTIP": "Buy me a coffee",
     "SLOGAN": "Your editorial path,\nonly one place.",
     "TITLE_ARTICLES_PANEL": "Articles panel",
     "SUBTITLE_ARTICLES_PANEL": "Follow every stage of the editorial process",
@@ -124,14 +126,12 @@ CONFIG_DEFAULTS = {
     "DELETE_ARTICLE_TITLE": "Remove article",
     "DELETE_ARTICLE_QUESTION": "Remove “{title}”?",
     "OPEN_FILE_ERROR_TITLE": "Could not open the file",
-    "URL_NOT_CONFIGURED_TITLE": "URL not configured",
-    "URL_NOT_CONFIGURED_MESSAGE": "Set CONFIG_GPT['usage'] to open that page.",
     "JOURNALS_JSON_TITLE": "Journals · use by article",
     "SEARCH_ACTION": "Search",
 }
 DATA = configure.load_config(str(CONFIG_PATH), CONFIG_DEFAULTS)
 
-DATA_PATH = Path.home() / ".local" / "share" / "painel_de_artigos" / "articles.json"
+DATA_PATH = Path.home() / ".local" / "share" / about.__package__ / "articles.json"
 
 ################################################################################
 
@@ -150,8 +150,7 @@ for _stage in DATA["STAGES"]:
         _normalized_stages.append(_stage)
 DATA["STAGES"] = _normalized_stages
 if _stages_migrated:
-    from configure import save_config
-    save_config(str(CONFIG_PATH), DATA)
+    configure.save_config(str(CONFIG_PATH), DATA)
 
 
 
@@ -370,8 +369,10 @@ class SettingsDialog(QDialog):
             if not isinstance(imported, list) or any(not isinstance(row, dict) for row in imported):
                 raise ValueError(DATA["IMPORT_INVALID_FILE"])
             parent.articles = imported
+            parent.statistics_page.articles = parent.articles
             parent.save_articles()
             parent.refresh_table()
+            parent.statistics_page.refresh_statistics()
             QMessageBox.information(self, DATA["IMPORT_SUCCESS_TITLE"], DATA["IMPORT_SUCCESS_MESSAGE"])
         except (OSError, json.JSONDecodeError, ValueError) as exc:
             QMessageBox.critical(self, DATA["IMPORT_ERROR_TITLE"], str(exc))
@@ -415,21 +416,19 @@ class JsonViewerDialog(QDialog):
         self.copy_status.setText(DATA["JSON_COPIED"])
 
 
-class StatisticsDialog(QDialog):
+class StatisticsPage(QWidget):
     def __init__(self, articles: list[dict[str, Any]], parent=None):
         super().__init__(parent)
         self.articles = articles
-        self.setWindowTitle(DATA["STATISTICS"])
-        self.resize(820, 740)
-        self.setMinimumSize(700, 600)
+        self.setObjectName("statisticsPage")
         self.payload: dict[str, Any] = {}
 
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(24, 20, 24, 20)
+        outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(14)
         heading = QVBoxLayout()
         title = QLabel(DATA["STATISTICS"])
-        title.setObjectName("dialogTitle")
+        title.setObjectName("pageTitle")
         subtitle = QLabel(DATA["STATS_SUBTITLE"])
         subtitle.setObjectName("subtitle")
         heading.addWidget(title)
@@ -473,6 +472,7 @@ class StatisticsDialog(QDialog):
         active_details.addWidget(self.active_number)
         active_layout.addLayout(active_details)
         active_layout.addStretch(1)
+        
         active_note = QLabel(DATA["STATS_NO_ONLINE_DATE"])
         active_note.setObjectName("summaryNote")
         active_layout.addWidget(active_note, alignment=Qt.AlignVCenter)
@@ -481,9 +481,11 @@ class StatisticsDialog(QDialog):
         stage_heading = QLabel(DATA["STATS_STAGE_TIMES"])
         stage_heading.setObjectName("sectionTitle")
         content.addWidget(stage_heading)
+        
         stage_note = QLabel(DATA["STATS_STAGE_TIMES_NOTE"])
         stage_note.setObjectName("sectionNote")
         content.addWidget(stage_note)
+        
         self.metrics = QTableWidget(len(DATA["STAGES"]), 4)
         self.metrics.setObjectName("statsTable")
         self.metrics.setHorizontalHeaderLabels(DATA["STATS_TABLE_HEADERS"])
@@ -507,10 +509,12 @@ class StatisticsDialog(QDialog):
         year_title = QLabel(DATA["STATS_SUBMISSIONS_BY_YEAR"])
         year_title.setObjectName("sectionTitle")
         content.addWidget(year_title)
+        
         self.year_layout = QVBoxLayout()
         self.year_layout.setContentsMargins(0, 0, 0, 0)
         self.year_layout.setSpacing(9)
         content.addLayout(self.year_layout)
+        
         content.addStretch(1)
         scroll.setWidget(body)
         outer.addWidget(scroll, 1)
@@ -524,10 +528,6 @@ class StatisticsDialog(QDialog):
         json_button.setObjectName("primaryButton")
         json_button.clicked.connect(lambda: JsonViewerDialog(DATA["STATS_JSON_TITLE"], self.payload, self).exec_())
         footer.addWidget(json_button)
-        close_button = QPushButton(DATA["BUTTON_CLOSE"])
-        close_button.setObjectName("secondaryButton")
-        close_button.clicked.connect(self.accept)
-        footer.addWidget(close_button)
         outer.addLayout(footer)
         self.scope_combo.currentIndexChanged.connect(self.refresh_statistics)
         self.refresh_statistics()
@@ -685,6 +685,8 @@ class MainWindow(QMainWindow):
         home_button.setIcon(QIcon(resource_path("icons", "x-office-document-symbolic.svg")))
         home_button.setObjectName("navActive")
         home_button.setCursor(Qt.PointingHandCursor)
+        home_button.clicked.connect(self.show_panel)
+        self.home_button = home_button
         layout.addWidget(home_button)
         
         statistics_button = QPushButton(DATA["STATISTICS"])
@@ -692,6 +694,7 @@ class MainWindow(QMainWindow):
         statistics_button.setObjectName("navButton")
         statistics_button.setCursor(Qt.PointingHandCursor)
         statistics_button.clicked.connect(self.open_statistics)
+        self.statistics_button = statistics_button
         layout.addWidget(statistics_button)
         
         journals_button = QPushButton(DATA["JOURNALS"])
@@ -717,11 +720,22 @@ class MainWindow(QMainWindow):
         
         layout.addItem(QSpacerItem(10, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
         
+        btn_coffee = QPushButton(DATA["COFFEE"])
+        btn_coffee.setIcon(QIcon(resource_path("icons", "emblem-favorite-symbolic.svg")))
+        btn_coffee.setObjectName("navCoffee")
+        btn_coffee.setToolTip(DATA["COFFEE_TOOLTIP"])
+        btn_coffee.setCursor(Qt.PointingHandCursor)
+        btn_coffee.clicked.connect(self.on_coffee_action_click)
+        layout.addWidget(btn_coffee)
+        
         note = QLabel(DATA["SLOGAN"])
         note.setObjectName("sidebarNote")
         layout.addWidget(note)
         
         return sidebar
+
+    def on_coffee_action_click(self):
+        QDesktopServices.openUrl(QUrl("https://ko-fi.com/trucomanx"))
 
     def open_about(self):
         data={
@@ -742,19 +756,24 @@ class MainWindow(QMainWindow):
         content = QWidget()
         layout = QVBoxLayout(content)
         layout.setContentsMargins(34, 27, 34, 26)
-        layout.setSpacing(18)
+        layout.setSpacing(0)
+        self.pages = QStackedWidget()
+        layout.addWidget(self.pages)
+
+        article_page = QWidget()
+        self.article_page = article_page
+        article_layout = QVBoxLayout(article_page)
+        article_layout.setContentsMargins(0, 0, 0, 0)
+        article_layout.setSpacing(18)
         top = QHBoxLayout()
         headings = QVBoxLayout()
-        
+
         title = QLabel(DATA["TITLE_ARTICLES_PANEL"])
         title.setObjectName("pageTitle")
-        
         subtitle = QLabel(DATA["SUBTITLE_ARTICLES_PANEL"])
         subtitle.setObjectName("subtitle")
-        
         headings.addWidget(title)
         headings.addWidget(subtitle)
-        
         top.addLayout(headings)
         top.addStretch(1)
         self.search = QLineEdit()
@@ -762,17 +781,15 @@ class MainWindow(QMainWindow):
         self.search.setFixedWidth(DATA["SEARCH_WIDTH"])
         self.search.textChanged.connect(self.refresh_table)
         search_action = QAction(QIcon(resource_path("icons", "edit-find-symbolic.svg")), DATA["SEARCH_ACTION"], self.search)
-        self.search.addAction(search_action,QLineEdit.LeadingPosition)
+        self.search.addAction(search_action, QLineEdit.LeadingPosition)
         top.addWidget(self.search)
-        
         add = QPushButton(DATA["ADD_NEW_ARTICLE"])
         add.setObjectName("primaryButton")
         add.setCursor(Qt.PointingHandCursor)
         add.clicked.connect(self.add_article)
         top.addWidget(add)
-        
-        layout.addLayout(top)
-        
+        article_layout.addLayout(top)
+
         self.table = QTableWidget(0, 5)
         self.table.setHorizontalHeaderLabels([DATA["TABLE_TITLE_ARTICLE"]] + [stage[1] for stage in DATA["STAGES"]])
         for column, stage in enumerate(DATA["STAGES"], start=1):
@@ -790,18 +807,22 @@ class MainWindow(QMainWindow):
         self.table.horizontalHeader().setSortIndicator(0, Qt.AscendingOrder)
         self.table.horizontalHeader().sectionClicked.connect(self.sort_by_column)
         self.table.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
-        layout.addWidget(self.table, 1)
+        article_layout.addWidget(self.table, 1)
+
         bottom = QHBoxLayout()
         self.count = QLabel("")
         self.count.setObjectName("footerText")
         bottom.addWidget(self.count)
         bottom.addStretch(1)
-        legend_done = self._legend_item(True, DATA["LEGEND_COMPLETED"])
-        legend_pending = self._legend_item(False, DATA["LEGEND_PENDING"])
-        bottom.addWidget(legend_done)
+        bottom.addWidget(self._legend_item(True, DATA["LEGEND_COMPLETED"]))
         bottom.addSpacing(15)
-        bottom.addWidget(legend_pending)
-        layout.addLayout(bottom)
+        bottom.addWidget(self._legend_item(False, DATA["LEGEND_PENDING"]))
+        article_layout.addLayout(bottom)
+        self.pages.addWidget(article_page)
+
+        self.statistics_page = StatisticsPage(self.articles, self.pages)
+        self.pages.addWidget(self.statistics_page)
+        self.pages.setCurrentIndex(0)
         return content
 
     @staticmethod
@@ -972,19 +993,28 @@ class MainWindow(QMainWindow):
         except (OSError, subprocess.SubprocessError) as exc:
             QMessageBox.warning(self, DATA["OPEN_FILE_ERROR_TITLE"], str(exc))
 
-    def open_url_usage_editor(self):
-        config_gpt = globals().get("CONFIG_GPT", {})
-        usage_url = config_gpt.get("usage") if isinstance(config_gpt, dict) else None
-        if usage_url:
-            QDesktopServices.openUrl(QUrl(str(usage_url)))
-        else:
-            QMessageBox.information(self, DATA["URL_NOT_CONFIGURED_TITLE"], DATA["URL_NOT_CONFIGURED_MESSAGE"])
-
     def open_configure_editor(self):
         self._open_file_in_text_editor(CONFIG_PATH)
 
+    def show_panel(self):
+        self.pages.setCurrentWidget(self.article_page)
+        self.home_button.setObjectName("navActive")
+        self.statistics_button.setObjectName("navButton")
+        self.home_button.style().unpolish(self.home_button)
+        self.home_button.style().polish(self.home_button)
+        self.statistics_button.style().unpolish(self.statistics_button)
+        self.statistics_button.style().polish(self.statistics_button)
+
     def open_statistics(self):
-        StatisticsDialog(self.articles, self).exec_()
+        self.statistics_page.articles = self.articles
+        self.statistics_page.refresh_statistics()
+        self.pages.setCurrentWidget(self.statistics_page)
+        self.home_button.setObjectName("navButton")
+        self.statistics_button.setObjectName("navActive")
+        self.home_button.style().unpolish(self.home_button)
+        self.home_button.style().polish(self.home_button)
+        self.statistics_button.style().unpolish(self.statistics_button)
+        self.statistics_button.style().polish(self.statistics_button)
 
     def open_journals(self):
         JsonViewerDialog(DATA["JOURNALS_JSON_TITLE"], journal_usage(self.articles), self).exec_()
