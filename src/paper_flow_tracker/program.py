@@ -76,6 +76,11 @@ CONFIG_DEFAULTS = {
     "ARTDLG_COMPLETED": "Completed",
     "ARTDLG_TITLE_REQUIRED": "Title required",
     "ARTDLG_TITLE_REQUIRED_DESCRIPTION": "Provide the title of the article.",
+    "ARTCARD_AUTHORS_TOOLTIP": "List of authors.",
+    "ARTCARD_JOURNAL_TOOLTIP": "Name of journal.",
+    "ARTCARD_DATE_TOOLTIP": "Date of submission of the paper to the journal.",
+    "ARTCARD_URL_TOOLTIP": "Link to the article. This could be the journal’s submission page or a link to the publication itself.",
+    "ARTCARD_SOURCE_TOOLTIP": "The source code for the article. This could be a link to the LaTeX project or to the repository where the complete project is stored.",
     "ARTCARD_WITHOUT_TITLE": "Untitled",
     "ARTCARD_WITHOUT_AUTHORS": "Authors not specified",
     "ARTCARD_WITHOUT_JOURNAL": "Journal not specified",
@@ -335,26 +340,50 @@ class ArticleCard(QFrame):
         title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         title.setTextInteractionFlags(Qt.TextSelectableByMouse)
         content.addWidget(title)
+        
+
+        
         self._detail(   content, 
                         resource_path("icons", "system-users-symbolic.svg"), 
                         QStyle.SP_DirHomeIcon, 
-                        article.get("authors") or DATA["ARTCARD_WITHOUT_AUTHORS"] )
+                        article.get("authors") or DATA["ARTCARD_WITHOUT_AUTHORS"],
+                        tooltip=DATA["ARTCARD_AUTHORS_TOOLTIP"] )
+        
+        
         self._detail(   content, 
                         resource_path("icons", "accessories-dictionary-symbolic.svg"), 
                         QStyle.SP_FileIcon, 
-                        article.get("journal") or DATA["ARTCARD_WITHOUT_JOURNAL"] )
+                        article.get("journal") or DATA["ARTCARD_WITHOUT_JOURNAL"],
+                        tooltip=DATA["ARTCARD_JOURNAL_TOOLTIP"] )
+        
+        
         self._detail(   content, 
                         resource_path("icons", "x-office-calendar-symbolic.svg"), 
                         QStyle.SP_FileDialogContentsView, 
-                        display_date(article.get("submission_date")) or DATA["ARTCARD_WITHOUT_DATE"] )
+                        display_date(article.get("submission_date")) or DATA["ARTCARD_WITHOUT_DATE"],
+                        tooltip=DATA["ARTCARD_DATE_TOOLTIP"] )
+        
+        
         url = str(article.get("url") or "").strip()
         if url:
-            self._detail(content, resource_path("icons", "web-browser-symbolic.svg"), QStyle.SP_DirLinkIcon, url, link=True)
+            self._detail(   content, 
+                            resource_path("icons", "web-browser-symbolic.svg"), 
+                            QStyle.SP_DirLinkIcon, 
+                            url, 
+                            link=True,
+                            tooltip=DATA["ARTCARD_URL_TOOLTIP"] )
+        
+        
         source = str(article.get("source") or "").strip()
         if source:
-            self._detail(content, resource_path("icons", "web-browser-symbolic.svg"), QStyle.SP_FileLinkIcon, source, link=True)
+            self._detail(   content, 
+                            resource_path("icons", "go-home-symbolic.svg"), 
+                            QStyle.SP_FileLinkIcon, 
+                            source, 
+                            link=True,
+                            tooltip=DATA["ARTCARD_SOURCE_TOOLTIP"] )
 
-    def _detail(self, layout: QVBoxLayout, img_path: str, fallback, value: str, link: bool = False):
+    def _detail(self, layout: QVBoxLayout, img_path: str, fallback, value: str, link: bool = False, tooltip: str = ""):
         line = QHBoxLayout()
         #layout.setContentsMargins(esquerda, superior, direita, inferior)
         line.setContentsMargins(0, 0, 0, 0)
@@ -369,6 +398,7 @@ class ArticleCard(QFrame):
         if qicon.isNull():
             qicon = self.style().standardIcon(fallback)
         icon.setPixmap(qicon.pixmap(DATA["ARTICLE_META_ICON_SIZE"], DATA["ARTICLE_META_ICON_SIZE"]))
+        icon.setToolTip(tooltip)
         
         val = QLabel(value)
         val.setObjectName("detailValue")
@@ -382,6 +412,7 @@ class ArticleCard(QFrame):
                 val.setText(f'<a href="{href}">{escape(value)}</a>')
                 val.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
                 val.setOpenExternalLinks(True)
+        val.setToolTip(tooltip)
         
         line.addWidget(icon)
         line.addWidget(val, 1)
